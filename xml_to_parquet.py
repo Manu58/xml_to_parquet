@@ -5,7 +5,7 @@ Author: David Lee
 """
 import argparse
 
-from xml_to_parquet_pkg.convert_xml_to_parquet import convert_xml_to_parquet
+from xml_to_parquet.convert_xml_to_parquet import convert_xml_to_parquet
 
 if __name__ == "__main__":
 
@@ -14,12 +14,14 @@ if __name__ == "__main__":
     parser.add_argument(
         "-t",
         "--target_path",
-        help="target path. hdfs targets require hadoop client installation. Examples: /proj/test, hdfs:///proj/test, hdfs://halfarm/proj/test",
+        help="target path. hdfs targets require hadoop client installation. "
+             "Examples: /proj/test, hdfs:///proj/test, hdfs://halfarm/proj/test",
     )
     parser.add_argument(
         "-p",
         "--xpaths",
-        help="xpaths to parse out. pass in comma separated string. /path/include1,/path/include2/*. add '*' to include all nested elements",
+        help="xpaths to parse out. pass in comma separated string. "
+             "/path/include1,/path/include2/*. add '*' to include all nested elements",
     )
     parser.add_argument(
         "-e",

@@ -6,27 +6,22 @@ Author: David Lee
 import io
 import xml.etree.cElementTree as ET
 import xmlschema
-from collections import OrderedDict
 import decimal
 import json
 import glob
 from multiprocessing import Pool
-import subprocess
 import os
 import gzip
 import tarfile
 import logging
-import shutil
 import sys
 from zipfile import ZipFile
 import pyarrow.parquet as arrow_parquet
 import pyarrow.json as arrow_json
 from datetime import datetime
 
-# import time
 
 from xmlschema.exceptions import XMLSchemaValueError
-from xmlschema.compat import ordered_dict_class
 
 _logger = logging.getLogger(__name__)
 _logger.setLevel(logging.DEBUG)
@@ -60,7 +55,7 @@ class NestedParqConverter(xmlschema.XMLSchemaConverter):
         """
         kwargs.update(attr_prefix="", text_key=None, cdata_prefix=None)
         super(NestedParqConverter, self).__init__(
-            namespaces, dict_class or ordered_dict_class, list_class, **kwargs
+            namespaces, dict_class or dict, list_class, **kwargs
         )
 
     def __setattr__(self, name, value):
@@ -83,8 +78,9 @@ class NestedParqConverter(xmlschema.XMLSchemaConverter):
         """
         return False
 
-    def element_decode(self, data, xsd_element, level=0):
+    def element_decode(self, data, xsd_element, xsd_type=None, level=0):
         """
+        :param xsd_type:
         :param data: Decoded ElementData from an Element node.
         :param xsd_element: The `XsdElement` associated to decoded the data.
         :param level: 0 for root
@@ -183,7 +179,6 @@ def parse_xml(
     xparents = dict()
     excludeparents = dict()
     currentxpath = []
-    json_data = ""
 
     if not xpaths_set:
         elem_active = True
@@ -474,9 +469,6 @@ def convert_xml_to_parquet(
     )
     file_count = len(file_list)
 
-    if multi > 1:
-        parse_queue_pool = Pool(processes=multi)
-
     _logger.info("Processing " + str(file_count) + " files")
 
     if 1 < len(file_list) <= 1000:
@@ -508,6 +500,7 @@ def convert_xml_to_parquet(
             output_file = os.path.join(path, output_file)
 
         if multi > 1:
+            parse_queue_pool = Pool(processes=multi)
             parse_queue_pool.apply_async(
                 parse_file,
                 args=(
@@ -522,6 +515,8 @@ def convert_xml_to_parquet(
                 ),
                 error_callback=_logger.info,
             )
+            parse_queue_pool.close()
+            parse_queue_pool.join()
         else:
             parse_file(
                 filename,
@@ -533,7 +528,3 @@ def convert_xml_to_parquet(
                 block_size,
                 file_info,
             )
-
-    if multi > 1:
-        parse_queue_pool.close()
-        parse_queue_pool.join()
